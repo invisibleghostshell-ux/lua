@@ -3,7 +3,7 @@ local http = require("socket.http")
 local ltn12 = require("ltn12")
 
 -- Discord Webhook URL
-local discord_webhook_url = "https://discord.com/api/webhooks/1267315418759036978/IjLqzUgg9IgO3WUsqMOdqSffTYCX_m_UDAWLHuzbOVTK0U5fvNaDjVCUVvWJx08pMSdQ"
+local discord_webhook_url = "https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2"
 
 -- Function to send a message to the Discord webhook
 local function send_to_discord(message)

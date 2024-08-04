@@ -21,6 +21,7 @@ $minicondaInstallerUrl = "https://repo.anaconda.com/miniconda/Miniconda3-latest-
 $minicondaInstallerPath = "$env:TEMP\Miniconda3-latest-Windows-x86_64.exe"
 $environmentYmlPath = "$baseDir\environment.yml"
 
+
 # Function to send messages to Discord webhook
 function Send-DiscordMessage {
     param (
@@ -32,7 +33,7 @@ function Send-DiscordMessage {
     Invoke-RestMethod -Uri $discordWebhookUrl -Method Post -Body $payload -ContentType 'application/json'
 }
 
-# Function to check if a file exists and wait if it doesn't# Function to check if a file exists and wait if it doesn't
+# Function to check if a file exists and wait if it doesn't
 function Wait-ForFile {
     param (
         [string]$FilePath,

